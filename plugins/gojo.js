@@ -1,12 +1,11 @@
 import config from '../config.cjs';
 import axios from 'axios';
-import { Readable } from 'stream';
 
 const gojo2 = async (m, Matrix) => {
   const prefix = config.PREFIX;
   const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
 
-  if (cmd === "gojo") {
+  if (cmd === "gojo2") {
     const mediaLinks = [
       "https://i.imgur.com/0yA9ZpW.mp4",
       "https://i.imgur.com/RKTWov0.jpeg",
@@ -39,18 +38,28 @@ const gojo2 = async (m, Matrix) => {
 
     try {
       const { data } = await axios.get(randomMedia, { responseType: 'arraybuffer' });
-      const stream = Readable.from(data);
 
-      await Matrix.sendMessage(m.from, {
-        video: randomMedia.endsWith('.mp4') ? stream : undefined,
-        image: randomMedia.endsWith('.jpeg') ? stream : undefined,
-        caption: '「 🌸 Satoru Gojo 」',
-        contextInfo: {
-          mentionedJid: [m.sender],
-          forwardingScore: 999,
-          isForwarded: true
-        }
-      }, { quoted: m });
+      if (randomMedia.endsWith('.mp4')) {
+        await Matrix.sendMessage(m.from, {
+          video: data,
+          caption: '「 🌸 Satoru Gojo 」',
+          contextInfo: {
+            mentionedJid: [m.sender],
+            forwardingScore: 999,
+            isForwarded: true
+          }
+        }, { quoted: m });
+      } else {
+        await Matrix.sendMessage(m.from, {
+          image: data,
+          caption: '「 🌸 Satoru Gojo 」',
+          contextInfo: {
+            mentionedJid: [m.sender],
+            forwardingScore: 999,
+            isForwarded: true
+          }
+        }, { quoted: m });
+      }
 
     } catch (error) {
       console.error(error);
@@ -59,4 +68,4 @@ const gojo2 = async (m, Matrix) => {
   }
 };
 
-export default gojo2
+export default gojo2;
