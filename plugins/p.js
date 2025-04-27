@@ -1,53 +1,63 @@
 import axios from 'axios';
 
-const pCommand = async (m, Matrix) => {
-  const prefix = '.';
+const p = async (m, Matrix) => {
+  const prefix = '.p';
   const body = m.message.conversation || m.message.extendedTextMessage?.text;
-  if (!body.startsWith(prefix)) return;
+  if (!body || !body.startsWith(prefix)) return;
 
-  const [cmd, ...args] = body.slice(prefix.length).split(' ');
-  if (cmd !== 'p') return;
+  const query = body.slice(prefix.length).trim();
 
-  const input = args.join(' ').toLowerCase();
-  const quoted = { quoted: m };
+  if (!query) {
+    await Matrix.sendMessage(m.from, { text: "❌ *Please provide a query after .p*" }, { quoted: m });
+    return;
+  }
+
+  const lowerQuery = query.toLowerCase();
 
   try {
-    if (input.startsWith('send waifu')) {
-      const res = await axios.get('https://waifu-wnk6.onrender.com/api/waifu?q=');
-      await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: '✨ Here’s your waifu!' }, quoted);
+    if (lowerQuery.startsWith('send waifu')) {
+      const res = await axios.get(`https://waifu-wnk6.onrender.com/api/waifu`);
+      await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: `✨ *Random Waifu for you!*` }, { quoted: m });
 
-    } else if (input.startsWith('generate ')) {
-      const prompt = input.replace('generate ', '');
+    } else if (lowerQuery.startsWith('generate')) {
+      const prompt = query.slice(9).trim();
+      if (!prompt) return await Matrix.sendMessage(m.from, { text: "❌ *Provide a prompt to generate.*" }, { quoted: m });
       const res = await axios.get(`https://kaiz-apis.gleeze.com/api/fluxwebui?prompt=${encodeURIComponent(prompt)}`);
-      await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: `🎨 AI Generated Image for: ${prompt}` }, quoted);
+      await Matrix.sendMessage(m.from, { image: { url: res.data.output }, caption: `✨ *Generated Image*` }, { quoted: m });
 
-    } else if (input.startsWith('send cat')) {
-      const res = await axios.get('https://api.thecatapi.com/v1/images/search');
-      await Matrix.sendMessage(m.from, { image: { url: res.data[0].url }, caption: '🐱 Here’s a cat for you!' }, quoted);
+    } else if (lowerQuery.startsWith('send cat')) {
+      const res = await axios.get(`https://api.thecatapi.com/v1/images/search`);
+      await Matrix.sendMessage(m.from, { image: { url: res.data[0].url }, caption: `🐱 *Random Cat!*` }, { quoted: m });
 
-    } else if (input.startsWith('send dog')) {
-      const res = await axios.get('https://dog.ceo/api/breeds/image/random');
-      await Matrix.sendMessage(m.from, { image: { url: res.data.message }, caption: '🐶 Woof woof!' }, quoted);
+    } else if (lowerQuery.startsWith('send dog')) {
+      const res = await axios.get(`https://dog.ceo/api/breeds/image/random`);
+      await Matrix.sendMessage(m.from, { image: { url: res.data.message }, caption: `🐶 *Random Dog!*` }, { quoted: m });
 
-    } else if (input.startsWith('send neko')) {
-      const res = await axios.get('https://nekos.life/api/v2/img/neko');
-      await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: '😸 Neko time!' }, quoted);
+    } else if (lowerQuery.startsWith('send neko')) {
+      const res = await axios.get(`https://nekos.life/api/v2/img/neko`);
+      await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: `😸 *Random Neko!*` }, { quoted: m });
 
-    } else if (input.startsWith('send pexel ')) {
-      const query = input.replace('send pexel ', '');
-      const res = await axios.get(`https://pexel-api-ery7.onrender.com/api/pexels?q=${encodeURIComponent(query)}`);
-      await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: `🖼️ Pexels Image for: ${query}` }, quoted);
+    } else if (lowerQuery.startsWith('send pexel')) {
+      const search = query.slice(11).trim();
+      if (!search) return await Matrix.sendMessage(m.from, { text: "❌ *Provide a keyword to search Pexel images.*" }, { quoted: m });
+      const res = await axios.get(`https://pexel-api-ery7.onrender.com/api/pexels?q=${encodeURIComponent(search)}`);
+      await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: `✨ *Pexel Result for "${search}"*` }, { quoted: m });
+
+    } else if (lowerQuery.startsWith('send song')) {
+      const songName = query.slice(10).trim();
+      if (!songName) return await Matrix.sendMessage(m.from, { text: "❌ *Please provide a song name to search.*" }, { quoted: m });
+      const res = await axios.get(`https://apis.davidcyriltech.my.id/play?query=${encodeURIComponent(songName)}`);
+      await Matrix.sendMessage(m.from, { audio: { url: res.data.url }, mimetype: 'audio/mpeg' }, { quoted: m });
 
     } else {
-      // If none of the above, treat it as a Deepseek AI text query
-      const res = await axios.get(`https://kaiz-apis.gleeze.com/api/deepseek-v3?ask=${encodeURIComponent(input)}`);
-      await Matrix.sendMessage(m.from, { text: `🤖 *DeepSeek AI says:*\n${res.data.reply}` }, quoted);
+      const res = await axios.get(`https://kaiz-apis.gleeze.com/api/deepseek-v3?ask=${encodeURIComponent(query)}`);
+      await Matrix.sendMessage(m.from, { text: `🤖 *DeepSeek AI says:*\n${res.data.result}` }, { quoted: m });
     }
 
   } catch (err) {
-    console.error(err);
-    await Matrix.sendMessage(m.from, { text: '❌ Something went wrong fetching your request.' }, quoted);
+    console.error("Error in .p command:", err.message || err);
+    await Matrix.sendMessage(m.from, { text: `❌ *Something went wrong. Try again later.*` }, { quoted: m });
   }
 };
 
-export default pCommand
+export default p;
