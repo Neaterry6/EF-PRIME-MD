@@ -4,7 +4,7 @@ const rizz = async (m, Matrix) => {
   const prefix = '.';
   const body = m.message.conversation || m.message.extendedTextMessage?.text;
 
-  // Check if message has content and starts with prefix
+  // Ensure message content exists and starts with prefix
   if (!body || !body.startsWith(prefix)) return;
 
   const [cmd] = body.slice(prefix.length).split(' ');
@@ -23,6 +23,17 @@ const rizz = async (m, Matrix) => {
 
   try {
     const response = await axios.get(apiUrl);
+
+    // Debugging log to verify the API response
+    console.log("API Response:", response.data);
+
+    // Validate the API response structure
+    if (!response.data || !response.data.line) {
+      return await Matrix.sendMessage(m.from, {
+        text: "❌ *No pickup line found!* 😢"
+      }, { quoted: m });
+    }
+
     const pickupLine = response.data.line;
 
     const rizzText = `
@@ -42,7 +53,7 @@ const rizz = async (m, Matrix) => {
     await Matrix.sendMessage(m.from, { text: rizzText }, { quoted: m });
 
   } catch (error) {
-    console.error("Error fetching pickup line:", error.message || error);
+    console.error("Error fetching pickup line:", error.response?.data || error.message);
     await Matrix.sendMessage(m.from, {
       text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢"
     }, { quoted: m });
