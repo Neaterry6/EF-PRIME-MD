@@ -9,7 +9,7 @@ const searchCommand = async (m, Matrix) => {
   const query = args.join(' ');
   if (!query) return;
 
-  if (cmd === 'music') {
+  if (cmd === 'ms') {
     try {
       const res = await axios.get(`https://music-movie-search-api.onrender.com/api/music?q=${encodeURIComponent(query)}`);
       const result = res.data.result;
@@ -25,7 +25,7 @@ const searchCommand = async (m, Matrix) => {
     }
   }
 
-  if (cmd === 'movie') {
+  if (cmd === 'm') {
     try {
       const res = await axios.get(`https://music-movie-search-api.onrender.com/api/movie?q=${encodeURIComponent(query)}`);
       const result = res.data.result;
@@ -42,4 +42,4 @@ const searchCommand = async (m, Matrix) => {
   }
 };
 
-export default searchCommand;
+export default ms;
