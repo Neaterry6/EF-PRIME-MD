@@ -1,10 +1,16 @@
 import axios from 'axios';
 
 const rizz = async (m, Matrix) => {
+  const prefix = '.rizz';
+  if (!m.body.startsWith(prefix)) return; // <-- this prevents spam on every message
+
   const currentDate = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
   await Matrix.sendMessage(m.from, { react: { text: "💘", key: m.key } });
-  await Matrix.sendMessage(m.from, { text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}`, }, { quoted: m });
+
+  await Matrix.sendMessage(m.from, {
+    text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}`,
+  }, { quoted: m });
 
   const apiUrl = `https://pinkupline-api.onrender.com/random`;
 
@@ -30,8 +36,10 @@ const rizz = async (m, Matrix) => {
 
   } catch (error) {
     console.error("Error fetching pickup line:", error.message || error);
-    await Matrix.sendMessage(m.from, { text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢" }, { quoted: m });
+    await Matrix.sendMessage(m.from, {
+      text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢"
+    }, { quoted: m });
   }
 };
 
-export default rizz
+export default rizz;
