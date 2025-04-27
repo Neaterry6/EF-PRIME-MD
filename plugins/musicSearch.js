@@ -1,35 +1,45 @@
 import axios from 'axios';
 
-const musicSearch = async (m, Matrix, text) => {
-  if (!text) return await Matrix.sendMessage(m.from, { text: '❌ *Please provide a song title to search.*' }, { quoted: m });
+const searchCommand = async (m, Matrix) => {
+  const prefix = '.';
+  const body = m.message.conversation || m.message.extendedTextMessage?.text;
+  if (!body || !body.startsWith(prefix)) return;
 
-  const query = text.trim();
-  await Matrix.sendMessage(m.from, { react: { text: "🎶", key: m.key } });
+  const [cmd, ...args] = body.slice(prefix.length).split(' ');
+  const query = args.join(' ');
+  if (!query) return;
 
-  try {
-    const res = await axios.get(`https://music-movie-search-api.onrender.com/api/music?q=${encodeURIComponent(query)}`);
-    const result = res.data.data[0];
+  if (cmd === 'music') {
+    try {
+      const res = await axios.get(`https://music-movie-search-api.onrender.com/api/music?q=${encodeURIComponent(query)}`);
+      const result = res.data.result;
 
-    if (!result) {
-      return await Matrix.sendMessage(m.from, { text: '❌ *No music found for your query.*' }, { quoted: m });
+      await Matrix.sendMessage(m.from, {
+        image: { url: result.cover },
+        caption: `🎵 *Title:* ${result.title}\n🎙️ *Artist:* ${result.artist}\n💽 *Album:* ${result.album}\n📅 *Release Date:* ${result.releaseDate}`
+      }, { quoted: m });
+
+    } catch (err) {
+      console.error(err);
+      await Matrix.sendMessage(m.from, { text: '❌ Error fetching music data.' }, { quoted: m });
     }
+  }
 
-    const msg = `
-╭━━━〔 🎵 *𝗠𝗨𝗦𝗜𝗖 𝗥𝗘𝗦𝗨𝗟𝗧* 🎵 〕━━━⊰  
-┃ 🎶 *Title:* ${result.title}
-┃ 🎙️ *Artist:* ${result.artist}
-┃ 🗂️ *Album:* ${result.album}
-┃ 📅 *Released:* ${result.year}
-┣━━━━━━━━━━━━━━━━━━━━━━  
-┃ 🔗 *Source:* ${result.source}
-╰━━━━━━━━━━━━━━━━━━━━━━⊱`;
+  if (cmd === 'movie') {
+    try {
+      const res = await axios.get(`https://music-movie-search-api.onrender.com/api/movie?q=${encodeURIComponent(query)}`);
+      const result = res.data.result;
 
-    await Matrix.sendMessage(m.from, { image: { url: result.cover }, caption: msg }, { quoted: m });
+      await Matrix.sendMessage(m.from, {
+        image: { url: result.cover },
+        caption: `🎬 *Title:* ${result.title}\n🎭 *Genre:* ${result.genre}\n⭐ *Rating:* ${result.rating}\n📅 *Release Date:* ${result.releaseDate}\n📝 *Description:* ${result.description}`
+      }, { quoted: m });
 
-  } catch (err) {
-    console.error(err.message);
-    await Matrix.sendMessage(m.from, { text: '❌ *Music search failed. Try again later.*' }, { quoted: m });
+    } catch (err) {
+      console.error(err);
+      await Matrix.sendMessage(m.from, { text: '❌ Error fetching movie data.' }, { quoted: m });
+    }
   }
 };
 
-export default musicSearch
+export default searchCommand;
