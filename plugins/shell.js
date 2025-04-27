@@ -15,41 +15,18 @@ const shellCommand = async (m, Matrix) => {
   try {
     await Matrix.sendMessage(m.from, { react: { text: "⚙️", key: m.key } });
 
-    exec(query, (error, stdout, stderr) => {
-      if (error) {
-        Matrix.sendMessage(
-          m.from,
-          { text: `❌ Error:\n${error.message}` },
-          { quoted: m }
-        );
-        return;
-      }
-      if (stderr) {
-        Matrix.sendMessage(
-          m.from,
-          { text: `⚠️ Stderr:\n${stderr}` },
-          { quoted: m }
-        );
-        return;
-      }
+    exec(query, { maxBuffer: 1024 * 5000 }, (error, stdout, stderr) => {
+      let response = "";
 
-      const output = stdout || "✅ Command executed successfully.";
+      if (error) response += `❌ Error:\n${error.message}\n\n`;
+      if (stderr) response += `⚠️ Stderr:\n${stderr}\n\n`;
+      if (stdout) response += `✅ Output:\n${stdout}`;
+
+      if (!response.trim()) response = "✅ Command executed successfully.";
 
       Matrix.sendMessage(
         m.from,
-        {
-          text: `🖥️ *Shell Output*\n━━━━━━━━━━━━━━━━━━━━━\n${output}`,
-          contextInfo: {
-            mentionedJid: [m.sender],
-            forwardingScore: 999,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterJid: "120363419090892208@newsletter",
-              newsletterName: "EF-PRIME",
-              serverMessageId: 145,
-            },
-          },
-        },
+        { text: `🖥️ *Shell Output*\n━━━━━━━━━━━━━━━━━━━━━\n${response.trim()}` },
         { quoted: m }
       );
 
