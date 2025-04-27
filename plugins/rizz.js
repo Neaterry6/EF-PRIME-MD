@@ -1,25 +1,24 @@
 import axios from 'axios';
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 export const cmd = 'rizz';
 
-export const run = async (Matrix, m, { text, prefix }) => {
+export const run = async (Matrix, m) => {
   try {
-    // Send first hype message
+    // First hype message
     await Matrix.sendMessage(m.from, {
       text: `🔥 *𝐑𝐈𝐙𝐙 𝐌𝐎𝐃𝐄 𝐀𝐂𝐓𝐈𝐕𝐀𝐓𝐄𝐃!* 🔥\n\n🎩 *A legendary pickup line is being prepared for you...*`
     }, { quoted: m });
 
-    await sleep(2500);
+    // Wait for 2.5 seconds
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
-    // Fetch pickup line
-    const res = await axios.get(`https://pinkupline-api.onrender.com/random`);
+    // Fetch pickup line from your API
+    const response = await axios.get('https://pinkupline-api.onrender.com/random');
 
-    console.log("API Response:", res.data); // log response for debugging
+    // Get the pickup line
+    const pickupLine = response.data.line;
 
-    const pickupLine = res.data?.line || "No pickup line found.";
-
+    // Send the fancy styled message with the pickup line
     await Matrix.sendMessage(m.from, {
       text: `╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
 ┃ 💘✨ *Legendary Pickup Line:*  
@@ -34,8 +33,8 @@ export const run = async (Matrix, m, { text, prefix }) => {
 ╰━━━━━━━━━━━━━━━━━━━━━━⊱`
     }, { quoted: m });
 
-  } catch (err) {
-    console.error("Rizz API error:", err.response?.data || err.message);
+  } catch (error) {
+    console.error(error);
     await Matrix.sendMessage(m.from, {
       text: `❌ *Failed to fetch Rizz line.* Please try again later.`
     }, { quoted: m });
