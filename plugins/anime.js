@@ -1,12 +1,18 @@
 import axios from 'axios';
 
 const anime = async (m, Matrix) => {
-  const prefix = '.anime';
-  if (!m.body.startsWith(prefix)) return;
+  const prefix = '.';
+  const body = m.message.conversation || m.message.extendedTextMessage?.text;
+  if (!body || !body.startsWith(prefix)) return;
 
-  const query = m.body.slice(prefix.length).trim();
+  const [cmd, ...args] = body.slice(prefix.length).split(' ');
+  if (cmd !== 'anime') return;
+
+  const query = args.join(' ');
   if (!query) {
-    return await Matrix.sendMessage(m.from, { text: '🎌 *Please enter an anime title.*\nExample: `.anime One Piece`' }, { quoted: m });
+    return await Matrix.sendMessage(m.from, {
+      text: '🎌 *Please enter an anime title.*\nExample: `.anime Naruto`'
+    }, { quoted: m });
   }
 
   await Matrix.sendMessage(m.from, { react: { text: "🎀", key: m.key } });
@@ -19,7 +25,7 @@ const anime = async (m, Matrix) => {
       return await Matrix.sendMessage(m.from, { text: `❌ *Anime not found for:* ${query}` }, { quoted: m });
     }
 
-    // Build caption
+    // Caption with anime details
     const animeText = `
 ╭━━━〔 🎌 *𝗔𝗡𝗜𝗠𝗘 𝗙𝗜𝗟𝗘* 🎌 〕━━━⊰  
 ┃ 🎞️ *Title:* ${result.title}
@@ -31,16 +37,18 @@ const anime = async (m, Matrix) => {
 ┃ ${result.synopsis}
 ╰━━━━━━━━━━━━━━━━━━━━━━⊱`;
 
-    // Send cover image (if image url was in your actual API, assuming e.g. result.image)
+    // Send with placeholder image since API doesn't provide one
     await Matrix.sendMessage(m.from, {
-      image: { url: result.coverImage || 'https://i.imgur.com/U3YqK5s.png' }, // replace with real image if API gives it
+      image: { url: 'https://i.imgur.com/U3YqK5s.png' },
       caption: animeText
     }, { quoted: m });
 
   } catch (error) {
     console.error("Anime API error:", error.message || error);
-    await Matrix.sendMessage(m.from, { text: '❌ *Error fetching anime details.*' }, { quoted: m });
+    await Matrix.sendMessage(m.from, {
+      text: '❌ *Error fetching anime details.*'
+    }, { quoted: m });
   }
 };
 
-export default anime
+export default anime;
