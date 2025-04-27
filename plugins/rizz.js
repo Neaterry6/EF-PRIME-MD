@@ -1,31 +1,25 @@
 import axios from 'axios';
 
-const rizz = async (m, Matrix) => {
-  const prefix = '.rizz';
-  const body = m.message.conversation || m.message.extendedTextMessage?.text;
-  if (!body || !body.startsWith(prefix)) return;
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+export const cmd = 'rizz';
+
+export const run = async (Matrix, m, { text, prefix }) => {
   try {
-    const now = new Date().toLocaleString("en-US", { timeZone: "UTC" });
-
-    // Send preparing message
-    const prepMsg = await Matrix.sendMessage(m.from, {
-      text: `🕰️ *Preparing your Rizz...*\n📅 *Date & Time (UTC):* ${now}`
+    // Send first hype message
+    await Matrix.sendMessage(m.from, {
+      text: `🔥 *𝐑𝐈𝐙𝐙 𝐌𝐎𝐃𝐄 𝐀𝐂𝐓𝐈𝐕𝐀𝐓𝐄𝐃!* 🔥\n\n🎩 *A legendary pickup line is being prepared for you...*`
     }, { quoted: m });
 
-    // Wait 2 seconds
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await sleep(2500);
 
-    // Delete the preparing message
-    await Matrix.sendMessage(m.from, {
-      delete: prepMsg.key
-    });
+    // Fetch pickup line
+    const res = await axios.get(`https://pinkupline-api.onrender.com/random`);
 
-    // Fetch Rizz line
-    const res = await axios.get('https://pinkupline-api.onrender.com/random');
-    const pickupLine = res.data.pickupLine;
+    console.log("API Response:", res.data); // log response for debugging
 
-    // Send styled pickup line
+    const pickupLine = res.data?.line || "No pickup line found.";
+
     await Matrix.sendMessage(m.from, {
       text: `╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
 ┃ 💘✨ *Legendary Pickup Line:*  
@@ -41,9 +35,9 @@ const rizz = async (m, Matrix) => {
     }, { quoted: m });
 
   } catch (err) {
-    console.error('Rizz command error:', err.message);
-    await Matrix.sendMessage(m.from, { text: `❌ *Failed to fetch Rizz line:* ${err.message}` }, { quoted: m });
+    console.error("Rizz API error:", err.response?.data || err.message);
+    await Matrix.sendMessage(m.from, {
+      text: `❌ *Failed to fetch Rizz line.* Please try again later.`
+    }, { quoted: m });
   }
 };
-
-export default rizz;
