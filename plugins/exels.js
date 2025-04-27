@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const pexels = {
-  name: 'pexels',
+  name: 'exels',
   description: 'Fetch beautiful images from Pexels',
   category: 'Media',
   async execute(m, sock, args) {
@@ -50,4 +50,4 @@ const pexels = {
   }
 };
 
-export default pexels
+export default exels
