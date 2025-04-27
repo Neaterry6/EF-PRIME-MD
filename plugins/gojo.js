@@ -28,8 +28,6 @@ const gojo2 = async (m, Matrix) => {
       "https://i.imgur.com/AnqajiQ.jpeg",
       "https://i.imgur.com/NinTb5o.jpeg",
       "https://i.imgur.com/QgBL32P.jpeg",
-      "https://i.imgur.com/NinTb5o.jpeg",
-      "https://i.imgur.com/QgBL32P.jpeg",
       "https://i.imgur.com/gME3HeC.jpeg",
       "https://i.imgur.com/OcVyAEg.jpeg"
     ];
@@ -37,33 +35,21 @@ const gojo2 = async (m, Matrix) => {
     const randomMedia = mediaLinks[Math.floor(Math.random() * mediaLinks.length)];
 
     try {
-      const { data } = await axios.get(randomMedia, { responseType: 'arraybuffer' });
-
       if (randomMedia.endsWith('.mp4')) {
         await Matrix.sendMessage(m.from, {
-          video: data,
+          video: { url: randomMedia },
           caption: '「 🌸 Satoru Gojo 」',
-          contextInfo: {
-            mentionedJid: [m.sender],
-            forwardingScore: 999,
-            isForwarded: true
-          }
         }, { quoted: m });
       } else {
         await Matrix.sendMessage(m.from, {
-          image: data,
+          image: { url: randomMedia },
           caption: '「 🌸 Satoru Gojo 」',
-          contextInfo: {
-            mentionedJid: [m.sender],
-            forwardingScore: 999,
-            isForwarded: true
-          }
         }, { quoted: m });
       }
 
     } catch (error) {
-      console.error(error);
-      await Matrix.sendMessage(m.from, { text: "An error occurred while fetching the media." }, { quoted: m });
+      console.error("Error sending media:", error.message);
+      await Matrix.sendMessage(m.from, { text: "❌ *An error occurred while fetching the media.*" }, { quoted: m });
     }
   }
 };
