@@ -57,12 +57,24 @@ const p = async (m, Matrix) => {
     }
 
     // Rizz Pickup Line
-    else if (lowerQuery.startsWith('rizz')) {
-      const res = await axios.get(`https://pinkupline-api.onrender.com/random`);
-      await Matrix.sendMessage(m.from, {
-        text: `✨ *Random Rizz Pick-Up Line*\n━━━━━━━━━━━━━━━━━━━━━\n📝 ${res.data.line}\n━━━━━━━━━━━━━━━━━━━━━`
-      }, { quoted: m });
+else if (lowerQuery.startsWith('rizz')) {
+  try {
+    const response = await axios.get('https://pinkupline-api.onrender.com/random');
+
+    if (!response.data || !response.data.line) {
+      await Matrix.sendMessage(m.from, { text: '❌ Could not fetch a pick-up line right now.' }, { quoted: m });
+      return;
     }
+
+    await Matrix.sendMessage(m.from, {
+      text: `✨ *Random Rizz Pick-Up Line*\n━━━━━━━━━━━━━━━━━━━━━\n📝 ${response.data.line}\n━━━━━━━━━━━━━━━━━━━━━`
+    }, { quoted: m });
+
+  } catch (error) {
+    console.error('[RIZZ ERROR]:', error);
+    await Matrix.sendMessage(m.from, { text: '❌ An error occurred while fetching a pick-up line.' }, { quoted: m });
+  }
+}
 
     // Send Waifu
     else if (lowerQuery.startsWith('send waifu')) {
@@ -165,17 +177,45 @@ else if (lowerQuery.startsWith('generate')) {
     await Matrix.sendMessage(m.from, { text: `❌ Error generating image: ${err.message}` }, { quoted: m });
   }
 }
+ 
+ // Video Download
+else if (lowerQuery.startsWith('dl')) {
+  const link = query.slice(2).trim();
+  if (!link) {
+    return Matrix.sendMessage(m.from, { text: "❌ Provide a video link." }, { quoted: m });
+  }
 
-    // Video Download
-    else if (lowerQuery.startsWith('dl')) {
-      const link = query.slice(2).trim();
-      if (!link) return Matrix.sendMessage(m.from, { text: "❌ Provide a video link." }, { quoted: m });
-      const res = await axios.get(`https://apis.davidcyriltech.my.id/ytmp4?url=${encodeURIComponent(link)}`);
-      await Matrix.sendMessage(m.from, {
-        video: { url: res.data.result.download_url },
-        caption: `🎥 *Downloaded Video:*\n📀 *Title:* ${res.data.result.title}`
-      }, { quoted: m });
-    }
+  const start = Date.now();
+  const apiRes = await axios.get(`https://bk9.fun/download/alldownload?url=${encodeURIComponent(link)}`);
+  const timeTaken = Date.now() - start;
+
+  if (!apiRes.data.status) {
+    return Matrix.sendMessage(m.from, { text: `❌ Failed to fetch video.` }, { quoted: m });
+  }
+
+  const { title, low, high } = apiRes.data.BK9;
+
+  const resultText = `
+🎯 *API RESPONSE* 🎯
+━━━━━━━━━━━━━━━━━━━━━
+🔗 *URL:* ${link}
+✅ *Status:* 200 OK
+⏳ *Time Taken:* ${timeTaken}ms
+📜 *Video Info:*
+🎬 *Title:* ${title}
+📥 *Low Quality:* ${low}
+📥 *High Quality:* ${high}
+━━━━━━━━━━━━━━━━━━━━━
+  `;
+
+  await Matrix.sendMessage(m.from, { text: resultText.trim() }, { quoted: m });
+
+  // Optional: auto-send the high quality video file directly if you want  
+  await Matrix.sendMessage(m.from, {
+    video: { url: high },
+    caption: `🎥 *Downloaded Video:*\n📀 *Title:* ${title}`
+  }, { quoted: m });
+}
 
     // Fallback AI Response
     else {
