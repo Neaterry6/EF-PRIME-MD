@@ -1,49 +1,47 @@
 import axios from 'axios';
 
-const rizz = {
+const rizzCommand = {
   name: 'rizz',
-  description: 'Drop a smooth pickup line (Rizz)',
+  description: 'Get a random Rizz pick-up line',
   category: 'Fun',
-  async execute(m, sock) {
+
+  async execute(m, Matrix, args) {
     try {
-      // Sending a loading message
-      const loading = await sock.sendMessage(m.from, {
-        text: '⏳ *Fetching a smooth Rizz line...*',
-      }, { quoted: m });
+      // Fetch from API
+      const response = await axios.get('https://pinkupline-api.onrender.com/random');
 
-      // Fetching data from API
-      const res = await axios.get('https://pinkupline-api.onrender.com/random');
-      const data = res.data;
+      // Check if line exists
+      if (!response.data || !response.data.line) {
+        await Matrix.sendMessage(m.from, {
+          text: '❌ Could not fetch a pick-up line right now.'
+        }, { quoted: m });
+        return;
+      }
 
-      // Structuring output with an elegant design
+      const rizzLine = response.data.line;
+
+      // Styled response message
       const result = `
-╔════◇🎀 *RIZZ GENERATOR* 🎀◇════╗
-║  
-║  🎯 *API RESPONSE*
-║  ─────────────────────────
-║  🔗 *URL:* https://pinkupline-api.onrender.com/random
-║  ✅ *Status:* 200 OK
-║  
-║  💬 *Pickup Line:*
-║  
-║  🎀 *"${data.line}"*
-║  
-╚═════════════════════════════╝
+╭━━━〔 ✨ *RIZZ PICK-UP LINE* ✨ 〕━━━⊰
+┃  
+┃ 💖 ${rizzLine}
+┃  
+┃ 🎀 _Drop this on someone special!_
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⊱
       `.trim();
 
-      // Sending formatted message
-      await sock.sendMessage(m.from, { text: result }, { quoted: m });
-
-      // Adding a reaction to acknowledge completion
-      await sock.sendMessage(m.from, { react: { text: '🎀', key: loading.key } });
+      // Send message
+      await Matrix.sendMessage(m.from, {
+        text: result
+      }, { quoted: m });
 
     } catch (error) {
-      console.error('[RIZZ ERROR]:', error);
-      await sock.sendMessage(m.from, {
-        text: '❌ *Failed to fetch a Rizz line.*',
+      console.error('[RIZZ CMD ERROR]:', error);
+      await Matrix.sendMessage(m.from, {
+        text: '❌ An error occurred while fetching a pick-up line.'
       }, { quoted: m });
     }
   }
 };
 
-export default rizz;
+export default rizzCommand;
