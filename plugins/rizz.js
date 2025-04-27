@@ -1,26 +1,24 @@
 import axios from 'axios';
 
-export const cmd = 'rizz';
+const rizz = async (m, Matrix) => {
+  const apiUrl = `https://pinkupline-api.onrender.com/random`;
 
-export const run = async (Matrix, m) => {
   try {
-    // First hype message
-    await Matrix.sendMessage(m.from, {
-      text: `🔥 *𝐑𝐈𝐙𝐙 𝐌𝐎𝐃𝐄 𝐀𝐂𝐓𝐈𝐕𝐀𝐓𝐄𝐃!* 🔥\n\n🎩 *A legendary pickup line is being prepared for you...*`
-    }, { quoted: m });
+    // Sending an awaiting message
+    const awaitingMessage = await Matrix.sendMessage(m.from, { text: "🎩 *Summoning the Ultimate Rizz Line...* 💭" }, { quoted: m });
 
-    // Wait for 2.5 seconds
-    await new Promise(resolve => setTimeout(resolve, 2500));
-
-    // Fetch pickup line from your API
-    const response = await axios.get('https://pinkupline-api.onrender.com/random');
-
-    // Get the pickup line
+    // Fetch the Rizz pickup line
+    const response = await axios.get(apiUrl);
     const pickupLine = response.data.line;
 
-    // Send the fancy styled message with the pickup line
-    await Matrix.sendMessage(m.from, {
-      text: `╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
+    // Delete the awaiting message after 3 seconds
+    setTimeout(async () => {
+      await Matrix.deleteMessage(m.from, awaitingMessage.key);
+    }, 3000);
+
+    // Send the Rizz pickup line in a stylish format
+    const rizzText = `
+╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
 ┃ 💘✨ *Legendary Pickup Line:*  
 ┃ “${pickupLine}”  
 ┃  
@@ -30,13 +28,14 @@ export const run = async (Matrix, m) => {
 ┃ 🎭 *Confidence Level:* 💯  
 ┃ 🕶️ *Charm Activated:* ✅  
 ┃ 💡 *Guaranteed Effectiveness:* Unknown 😉  
-╰━━━━━━━━━━━━━━━━━━━━━━⊱`
-    }, { quoted: m });
+╰━━━━━━━━━━━━━━━━━━━━━━⊱`;
+
+    await Matrix.sendMessage(m.from, { text: rizzText }, { quoted: m });
 
   } catch (error) {
-    console.error(error);
-    await Matrix.sendMessage(m.from, {
-      text: `❌ *Failed to fetch Rizz line.* Please try again later.`
-    }, { quoted: m });
+    console.error("Error fetching Rizz line:", error.message);
+    await Matrix.sendMessage(m.from, { text: "❌ *Oops! The Rizz Gods are unavailable right now... Try again later!* 😢" }, { quoted: m });
   }
 };
+
+export default rizz;
