@@ -1,13 +1,25 @@
 import axios from 'axios';
 
+// Helper to extract message content
+const getMessageText = (m) => {
+  return (
+    m.message?.conversation ||
+    m.message?.extendedTextMessage?.text ||
+    m.message?.imageMessage?.caption ||
+    m.message?.videoMessage?.caption ||
+    ''
+  );
+};
+
 const p = async (m, Matrix) => {
   const prefix = '.p';
-  const body = m.message.conversation || m.message.extendedTextMessage?.text;
-  if (!body || !body.startsWith(prefix)) return;
+  const body = getMessageText(m);
+  if (!body.startsWith(prefix)) return;
 
   const query = body.slice(prefix.length).trim();
   if (!query) {
-    return await Matrix.sendMessage(m.from, { text: `╭━━━〔 🎀 *P Command Guide* 🎀 〕━━━⊰  
+    return await Matrix.sendMessage(m.from, {
+      text: `╭━━━〔 🎀 *P Command Guide* 🎀 〕━━━⊰  
 ┃ 🔹 *Send Waifu:* \`.p send waifu <type>\`
 ┃ 🔹 *Send Cat:* \`.p send cat\`
 ┃ 🔹 *Send Dog:* \`.p send dog\`
@@ -22,7 +34,8 @@ const p = async (m, Matrix) => {
 ┃ 🔹 *Translate:* \`.p translate <text>|<from>|<to>\`
 ┃ 🔹 *Get Rizz Line:* \`.p send rizz\`
 ┃ 🔹 *Download Video:* \`.p dl <link>\`
-╰━━━━━━━━━━━━━━━━━━━━━━⊱` }, { quoted: m });
+╰━━━━━━━━━━━━━━━━━━━━━━⊱`
+    }, { quoted: m });
   }
 
   const lowerQuery = query.toLowerCase();
@@ -107,22 +120,16 @@ const p = async (m, Matrix) => {
       await Matrix.sendMessage(m.from, { image: { url: res.data.image }, caption: `🎨 *AI Artwork Generated!*\n\n🖌️ Prompt: ${prompt}\n📐 Ratio: ${ratio}` }, { quoted: m });
 
     } else if (lowerQuery.startsWith('send rizz')) {
-  const res = await axios.get(`https://pinkupline-api.onrender.com/random`);
-  const pickupLine = res.data.line || res.data.pickupLine || "No pickup line found.";
-  await Matrix.sendMessage(m.from, {
-    text: `╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
+      const res = await axios.get(`https://pinkupline-api.onrender.com/random`);
+      const pickupLine = res.data.line || res.data.pickupLine || "No pickup line found.";
+      await Matrix.sendMessage(m.from, {
+        text: `╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
 ┃ 💘✨ *Legendary Pickup Line:*  
 ┃ “${pickupLine}”  
 ┃  
 ┃ 🔥 *Drop this and let the magic unfold!*  
-┃ 😏 *Will they fall for it? Only time will tell!*  
-┣━━━━━━━━━━━━━━━━━━━━━━  
-┃ 🎭 *Confidence Level:* 💯  
-┃ 🕶️ *Charm Activated:* ✅  
-┃ 💡 *Guaranteed Effectiveness:* Unknown 😉  
 ╰━━━━━━━━━━━━━━━━━━━━━━⊱`
-  }, { quoted: m });
-}
+      }, { quoted: m });
 
     } else if (lowerQuery.startsWith('dl ')) {
       const url = query.slice(3).trim();
