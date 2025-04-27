@@ -1,47 +1,40 @@
 import axios from 'axios';
 
 const rizz = async (m, Matrix) => {
-  const prefix = '.rizz'; // Define the specific command prefix
+  const prefix = '.rizz';
   const body = m.message.conversation || m.message.extendedTextMessage?.text;
-
-  if (!body || !body.startsWith(prefix)) return; // Ensure message starts with the correct command
-
-  const currentDate = new Date().toLocaleString("en-US", { timeZone: "UTC" });
-
-  await Matrix.sendMessage(m.from, { react: { text: "💘", key: m.key } });
-  await Matrix.sendMessage(m.from, { text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}` }, { quoted: m });
-
-  const apiUrl = `https://pinkupline-api.onrender.com/random`;
+  if (!body || !body.startsWith(prefix)) return;
 
   try {
-    const response = await axios.get(apiUrl, { timeout: 10000 }); // Ensures API request doesn't hang
-    console.log("Rizz API Response:", response.data);
+    const now = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
-    if (!response.data || !response.data.line) {
-      throw new Error("Rizz API returned undefined response");
-    }
+    // First message
+    await Matrix.sendMessage(m.from, {
+      text: `🕰️ *Preparing your Rizz...*\n📅 *Date & Time (UTC):* ${now}`
+    }, { quoted: m });
 
-    const pickupLine = response.data.line;
+    // Fetch Rizz line
+    const res = await axios.get('https://pinkupline-api.onrender.com/random');
+    const pickupLine = res.data.pickupLine;
 
-    const rizzText = `
-╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
-┃ 📅 *Date & Time:* ${currentDate}  
-┃ 🔥 *𝗟𝗘𝗚𝗘𝗡𝗗𝗔𝗥𝗬 𝗟𝗜𝗡𝗘:*  
-┃ 💘✨ ${pickupLine} ✨  
+    // Send styled pickup line
+    await Matrix.sendMessage(m.from, {
+      text: `╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
+┃ 💘✨ *Legendary Pickup Line:*  
+┃ “${pickupLine}”  
 ┃  
-┃ 🤩 *Drop this and let the magic begin!*  
-┃ 😏 *Will they fall for it?*  
+┃ 🔥 *Drop this and let the magic unfold!*  
+┃ 😏 *Will they fall for it? Only time will tell!*  
 ┣━━━━━━━━━━━━━━━━━━━━━━  
 ┃ 🎭 *Confidence Level:* 💯  
 ┃ 🕶️ *Charm Activated:* ✅  
 ┃ 💡 *Guaranteed Effectiveness:* Unknown 😉  
-╰━━━━━━━━━━━━━━━━━━━━━━⊱`;
+╰━━━━━━━━━━━━━━━━━━━━━━⊱`
+    }, { quoted: m });
 
-    await Matrix.sendMessage(m.from, { text: rizzText }, { quoted: m });
-
-  } catch (error) {
-    console.error("Error fetching pickup line:", error.response?.data || error.message);
-    await Matrix.sendMessage(m.from, { text: `❌ *Oops! The Rizz Gods are sleeping... Try again later!*\n🔍 *Error:* ${error.message}` }, { quoted: m });
+  } catch (err) {
+    console.error('Rizz command error:', err.message);
+    await Matrix.sendMessage(m.from, { text: `❌ *Failed to fetch Rizz line:* ${err.message}` }, { quoted: m });
   }
 };
 
