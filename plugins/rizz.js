@@ -1,58 +1,49 @@
-import axios from 'axios'
-import chalk from 'chalk'
+import axios from 'axios';
 
-const Rizz = {
+const rizz = {
   name: 'rizz',
-  description: 'Drop a random smooth pickup line (Rizz)',
+  description: 'Drop a smooth pickup line (Rizz)',
   category: 'Fun',
-  async execute(m, sock, args) {
+  async execute(m, sock) {
     try {
-      // Send an awaiting message
-      const awaitingMessage = await sock.sendMessage(m.from, { text: "🎩 *Summoning the Ultimate Rizz Line...* 💭" }, { quoted: m });
+      // Sending a loading message
+      const loading = await sock.sendMessage(m.from, {
+        text: '⏳ *Fetching a smooth Rizz line...*',
+      }, { quoted: m });
 
-      // React to that message
-      await sock.sendMessage(m.from, {
-        react: { text: "🔥", key: awaitingMessage.key }
-      });
+      // Fetching data from API
+      const res = await axios.get('https://pinkupline-api.onrender.com/random');
+      const data = res.data;
 
-      // Fetch the Rizz pickup line
-      const response = await axios.get('https://pinkupline-api.onrender.com/random');
-      const pickupLine = response.data.line;
+      // Structuring output with an elegant design
+      const result = `
+╔════◇🎀 *RIZZ GENERATOR* 🎀◇════╗
+║  
+║  🎯 *API RESPONSE*
+║  ─────────────────────────
+║  🔗 *URL:* https://pinkupline-api.onrender.com/random
+║  ✅ *Status:* 200 OK
+║  
+║  💬 *Pickup Line:*
+║  
+║  🎀 *"${data.line}"*
+║  
+╚═════════════════════════════╝
+      `.trim();
 
-      // Delete the awaiting message after 3 seconds
-      setTimeout(async () => {
-        await sock.sendMessage(m.from, {
-          delete: {
-            id: awaitingMessage.key.id,
-            remoteJid: m.from,
-            fromMe: true
-          }
-        });
-      }, 3000);
+      // Sending formatted message
+      await sock.sendMessage(m.from, { text: result }, { quoted: m });
 
-      // Send the stylish Rizz pickup line message
-      const rizzText = `
-╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
-┃ 💘 *Titan Rizz Activated!*  
-┃ 🔥 “${pickupLine}”  
-┃  
-┃ 😏 *Drop this line and let fate decide!*  
-┃ 🎀 *Your charm level is MAX!*  
-┣━━━━━━━━━━━━━━━━━━━━━━  
-┃ 🎭 *Confidence Level:* 💯  
-┃ 🕶️ *Swagger:* ✅  
-┃ 💡 *Guaranteed Success:* Unknown 😉  
-╰━━━━━━━━━━━━━━━━━━━━━━⊱  
-`;
-
-      await sock.sendMessage(m.from, { text: rizzText }, { quoted: m });
-      console.log(chalk.green('[RIZZ] Pickup line sent successfully.'));
+      // Adding a reaction to acknowledge completion
+      await sock.sendMessage(m.from, { react: { text: '🎀', key: loading.key } });
 
     } catch (error) {
-      console.log(chalk.red('[ERROR] Failed to fetch pickup line:'), error);
-      await sock.sendMessage(m.from, { text: '❌ *Oops! The Rizz Gods are resting... Try again later, King!* 😢' }, { quoted: m });
+      console.error('[RIZZ ERROR]:', error);
+      await sock.sendMessage(m.from, {
+        text: '❌ *Failed to fetch a Rizz line.*',
+      }, { quoted: m });
     }
   }
-}
+};
 
-export default Rizz
+export default rizz;
