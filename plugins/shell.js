@@ -8,41 +8,44 @@ const shell = {
     try {
       const text = args.join(" ");
       if (!text) {
-        return sock.sendMessage(m.from, { text: '⚠️ *Provide a shell command to execute.*' }, { quoted: m });
+        return sock.sendMessage(m.from, { text: '⚠️ Provide a shell command to execute.' }, { quoted: m });
       }
 
-      await sock.sendMessage(m.from, { text: '⏳ *Executing shell command... please wait.*' }, { quoted: m });
+      // Send awaiting message
+      const awaitingMessage = await sock.sendMessage(m.from, { text: '⏳ *Running your shell command...*' }, { quoted: m });
 
-      exec(text, { maxBuffer: 1024 * 500 }, (error, stdout, stderr) => {
-        if (error) {
-          const errMsg = `❌ *Execution Error:*\n\`\`\`${error.message}\`\`\``;
-          sock.sendMessage(m.from, { text: errMsg }, { quoted: m });
+      // Execute shell command
+      exec(text, async (err, stdout, stderr) => {
+        if (err) {
+          await sock.sendMessage(m.from, { 
+            text: `❌🥺 *Error:*\n\`\`\`${stderr || err.message}\`\`\``, 
+          }, { quoted: m });
+          await sock.sendMessage(m.from, { react: { text: '❌🥺', key: awaitingMessage.key } });
           return;
         }
 
-        if (stderr) {
-          const stderrMsg = `⚠️ *Stderr Output:*\n\`\`\`${stderr}\`\`\``;
-          sock.sendMessage(m.from, { text: stderrMsg }, { quoted: m });
-          return;
-        }
+        const output = stdout.trim() || "✅🥺 Command executed successfully with no output.";
 
-        let result = stdout.trim();
-        if (result.length === 0) result = "✅ *Command executed successfully with no output.*";
-
-        const finalReply = `
-╭━━━〔 ⚙️ *SHELL EXECUTOR* ⚙️ 〕━━━⊰
-┃ 🔸 *Input:* \`${text}\`
-┣━━━━━━━━━━━━━━━━━━━━━━
-┃ 📥 *Output:*
-┃ \`\`\`${result}\`\`\`
-╰━━━━━━━━━━━━━━━━━━━━━━⊱
+        // Build styled output box
+        const boxedOutput = `
+╭━━━〔 🖥️ *SHELL COMMAND OUTPUT* 🖥️ 〕━━━⊰  
+┃  
+┃ 📥 *Command:*\n${text}
+┃  
+┃ 📤 *Output:*
+┃ \`\`\`${output}\`\`\`
+┃  
+┃ ✅🥺 *Execution Completed*
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⊱  
         `;
-        sock.sendMessage(m.from, { text: finalReply }, { quoted: m });
+
+        await sock.sendMessage(m.from, { text: boxedOutput.trim() }, { quoted: m });
+        await sock.sendMessage(m.from, { react: { text: '✅🥺', key: awaitingMessage.key } });
       });
 
-    } catch (err) {
-      console.error(err);
-      await sock.sendMessage(m.from, { text: '❌ *An unexpected error occurred while executing the command.*' }, { quoted: m });
+    } catch (error) {
+      console.error(error);
+      await sock.sendMessage(m.from, { text: '❌🥺 An error occurred while running the shell command.' }, { quoted: m });
     }
   }
 };
