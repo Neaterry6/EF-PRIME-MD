@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const rizz = async (m, Matrix) => {
   const prefix = '.rizz';
-  if (!m.body.startsWith(prefix)) return; // <-- this prevents spam on every message
+  const body = m.message.conversation || m.message.extendedTextMessage?.text;
+  if (!body || !body.startsWith(prefix)) return;
 
   const currentDate = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
