@@ -1,34 +1,34 @@
 import axios from 'axios';
 
-const videoDownload = async (m, Matrix, text) => {
-  if (!text) return await Matrix.sendMessage(m.from, { text: '❌ *Please provide a video URL to download.*' }, { quoted: m });
+const dl = async (m, Matrix) => {
+  const prefix = '.dl';
+  const body = m.message.conversation || m.message.extendedTextMessage?.text;
+  if (!body || !body.startsWith(prefix)) return;
 
-  const url = text.trim();
-  await Matrix.sendMessage(m.from, { react: { text: "⏬", key: m.key } });
+  const args = body.split(' ');
+  if (args.length < 2) {
+    await Matrix.sendMessage(m.from, { text: `❌ *Usage:* ${prefix} <video link>` }, { quoted: m });
+    return;
+  }
+
+  const videoUrl = args[1];
+  const apiUrl = `https://alldl-wnld.onrender.com/api/download?url=${encodeURIComponent(videoUrl)}`;
 
   try {
-    const res = await axios.get(`https://alldl-wnld.onrender.com/api/download?url=${encodeURIComponent(url)}`);
-    const result = res.data;
+    const res = await axios.get(apiUrl);
+    const videoLink = res.data.video;
 
-    if (!result || !result.video) {
-      return await Matrix.sendMessage(m.from, { text: '❌ *Unable to fetch video for this URL.*' }, { quoted: m });
+    if (!videoLink) {
+      await Matrix.sendMessage(m.from, { text: "❌ *Couldn't fetch download link. Try a different video.*" }, { quoted: m });
+      return;
     }
 
-    const msg = `
-╭━━━〔 📥 *𝗩𝗜𝗗𝗘𝗢 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗* 📥 〕━━━⊰  
-┃ 🎬 *Title:* ${result.title || 'Unknown'}
-┃ 📦 *Size:* ${result.size || 'Unknown'}
-┃ 📅 *Downloaded:* Successfully
-┣━━━━━━━━━━━━━━━━━━━━━━  
-┃ 🔗 *Source:* ${url}
-╰━━━━━━━━━━━━━━━━━━━━━━⊱`;
-
-    await Matrix.sendMessage(m.from, { video: { url: result.video }, caption: msg }, { quoted: m });
+    await Matrix.sendMessage(m.from, { video: { url: videoLink }, mimetype: 'video/mp4' }, { quoted: m });
 
   } catch (err) {
-    console.error(err.message);
-    await Matrix.sendMessage(m.from, { text: '❌ *Failed to download video. Make sure the link is valid and try again.*' }, { quoted: m });
+    console.error("DL Command error:", err.message || err);
+    await Matrix.sendMessage(m.from, { text: "❌ *Failed to download video. Check the link or try later.*" }, { quoted: m });
   }
 };
 
-export default videoDownload
+export default dl;
