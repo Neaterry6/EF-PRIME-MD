@@ -1,39 +1,15 @@
 import axios from 'axios';
 
 const rizz = async (m, Matrix) => {
-  const prefix = '.';
-  const body = m.message.conversation || m.message.extendedTextMessage?.text;
-
-  // Ensure message content exists and starts with prefix
-  if (!body || !body.startsWith(prefix)) return;
-
-  const [cmd] = body.slice(prefix.length).split(' ');
-
-  // Only run for the 'rizz' command
-  if (cmd !== 'rizz') return;
-
   const currentDate = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
   await Matrix.sendMessage(m.from, { react: { text: "💘", key: m.key } });
-  await Matrix.sendMessage(m.from, {
-    text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}`
-  }, { quoted: m });
+  await Matrix.sendMessage(m.from, { text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}`, }, { quoted: m });
 
   const apiUrl = `https://pinkupline-api.onrender.com/random`;
 
   try {
     const response = await axios.get(apiUrl);
-
-    // Debugging log to verify the API response
-    console.log("API Response:", response.data);
-
-    // Validate the API response structure
-    if (!response.data || !response.data.line) {
-      return await Matrix.sendMessage(m.from, {
-        text: "❌ *No pickup line found!* 😢"
-      }, { quoted: m });
-    }
-
     const pickupLine = response.data.line;
 
     const rizzText = `
@@ -53,10 +29,8 @@ const rizz = async (m, Matrix) => {
     await Matrix.sendMessage(m.from, { text: rizzText }, { quoted: m });
 
   } catch (error) {
-    console.error("Error fetching pickup line:", error.response?.data || error.message);
-    await Matrix.sendMessage(m.from, {
-      text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢"
-    }, { quoted: m });
+    console.error("Error fetching pickup line:", error.message || error);
+    await Matrix.sendMessage(m.from, { text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢" }, { quoted: m });
   }
 };
 
