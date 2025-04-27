@@ -1,17 +1,22 @@
 import axios from 'axios';
 
 const rizz = async (m, Matrix) => {
-  const body = m.body || m.message?.conversation || "";
-  const prefix = "."; // or whatever your bot's prefix is
-  const command = "rizz";
+  const prefix = '.';
+  const body = m.message.conversation || m.message.extendedTextMessage?.text;
 
-  if (!body.startsWith(prefix + command)) return;  // exit if it's not .rizz
+  // Check if message has content and starts with prefix
+  if (!body || !body.startsWith(prefix)) return;
+
+  const [cmd] = body.slice(prefix.length).split(' ');
+
+  // Only run for the 'rizz' command
+  if (cmd !== 'rizz') return;
 
   const currentDate = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
   await Matrix.sendMessage(m.from, { react: { text: "💘", key: m.key } });
   await Matrix.sendMessage(m.from, {
-    text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}`,
+    text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}`
   }, { quoted: m });
 
   const apiUrl = `https://pinkupline-api.onrender.com/random`;
@@ -38,7 +43,9 @@ const rizz = async (m, Matrix) => {
 
   } catch (error) {
     console.error("Error fetching pickup line:", error.message || error);
-    await Matrix.sendMessage(m.from, { text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢" }, { quoted: m });
+    await Matrix.sendMessage(m.from, {
+      text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢"
+    }, { quoted: m });
   }
 };
 
