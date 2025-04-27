@@ -1,14 +1,15 @@
 import axios from 'axios';
 
 const rizz = async (m, Matrix) => {
-  const prefix = '.rizz';
-  const body = m.message.conversation || m.message.extendedTextMessage?.text;
-  if (!body || !body.startsWith(prefix)) return;
+  const body = m.body || m.message?.conversation || "";
+  const prefix = "."; // or whatever your bot's prefix is
+  const command = "rizz";
+
+  if (!body.startsWith(prefix + command)) return;  // exit if it's not .rizz
 
   const currentDate = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
   await Matrix.sendMessage(m.from, { react: { text: "💘", key: m.key } });
-
   await Matrix.sendMessage(m.from, {
     text: `✨ *Summoning the Ultimate Rizz Line...* 💭\n📅 *Date & Time:* ${currentDate}`,
   }, { quoted: m });
@@ -37,9 +38,7 @@ const rizz = async (m, Matrix) => {
 
   } catch (error) {
     console.error("Error fetching pickup line:", error.message || error);
-    await Matrix.sendMessage(m.from, {
-      text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢"
-    }, { quoted: m });
+    await Matrix.sendMessage(m.from, { text: "❌ *Oops! The Rizz Gods are sleeping... Try again later!* 😢" }, { quoted: m });
   }
 };
 
