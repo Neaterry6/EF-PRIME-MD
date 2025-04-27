@@ -27,12 +27,12 @@ const p = async (m, Matrix) => {
 ┃ 🔹 *Search Pexel:* \`.p send pexel <keyword>\`
 ┃ 🔹 *Download Song:* \`.p send song <song name>\`
 ┃ 🔹 *Search Movie:* \`.p send movie <title>\`
-┃ 🔹 *Search Anime:* \`.p send anime <title>\`
+┃ 🔹 *Search Anime:* \`.p anime <title>\`
 ┃ 🔹 *Search Lyrics:* \`.p send lyrics <artist>|<title>\`
 ┃ 🔹 *Fetch Date & Time:* \`.p datetime\`
 ┃ 🔹 *Generate Image:* \`.p generate <prompt>|<ratio>\`
 ┃ 🔹 *Translate:* \`.p translate <text>|<from>|<to>\`
-┃ 🔹 *Get Rizz Line:* \`.p send rizz\`
+┃ 🔹 *Get Rizz Line:* \`.p rizz\`
 ┃ 🔹 *Download Video:* \`.p dl <link>\`
 ╰━━━━━━━━━━━━━━━━━━━━━━⊱`
     }, { quoted: m });
@@ -41,113 +41,154 @@ const p = async (m, Matrix) => {
   const lowerQuery = query.toLowerCase();
 
   try {
-    if (lowerQuery.startsWith('send anime')) {
-      const animeTitle = query.slice(11).trim();
-      if (!animeTitle) return Matrix.sendMessage(m.from, { text: "❌ Provide an anime title." }, { quoted: m });
-      const res = await axios.get(`https://anime-api-js7o.onrender.com/api/anime?query=${encodeURIComponent(animeTitle)}`);
+    // Anime Search
+    if (lowerQuery.startsWith('anime')) {
+      const animeName = query.slice(5).trim();
+      if (!animeName) return await Matrix.sendMessage(m.from, { text: "❌ *Provide an anime name.*" }, { quoted: m });
+
+      const res = await axios.get(`https://anime-api-js7o.onrender.com/api/anime?query=${encodeURIComponent(animeName)}`);
+      if (!res.data?.data?.length) throw new Error("No anime found.");
+
       const anime = res.data.data[0];
       await Matrix.sendMessage(m.from, {
-        image: { url: anime.cover || 'https://i.imgur.com/U3YqK5s.png' },
-        caption: `📺 *Title:* ${anime.title}\n📖 *Synopsis:* ${anime.synopsis}\n🏷️ *Genres:* ${anime.genres.join(", ")}\n⭐ *Score:* ${anime.score}\n🎥 *Episodes:* ${anime.episodes}`
+        image: { url: anime.images.jpg.large_image_url },
+        caption: `🎌 *Anime Search Result*\n━━━━━━━━━━━━━━━━━━━━━\n🎞️ *Title:* ${anime.title}\n📖 *Type:* ${anime.type}\n🎬 *Episodes:* ${anime.episodes}\n📆 *Aired:* ${anime.aired.from.split('T')[0]}\n🔗 *Link:* ${anime.url}\n━━━━━━━━━━━━━━━━━━━━━`
       }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('send waifu')) {
-      const type = query.slice(11).trim() || "waifu";
+    // Rizz Pickup Line
+    else if (lowerQuery.startsWith('rizz')) {
+      const res = await axios.get(`https://pinkupline-api.onrender.com/random`);
+      await Matrix.sendMessage(m.from, {
+        text: `✨ *Random Rizz Pick-Up Line*\n━━━━━━━━━━━━━━━━━━━━━\n📝 ${res.data.line}\n━━━━━━━━━━━━━━━━━━━━━`
+      }, { quoted: m });
+    }
+
+    // Send Waifu
+    else if (lowerQuery.startsWith('send waifu')) {
+      const type = query.slice(11).trim() || 'cute';
       const res = await axios.get(`https://waifu-wnk6.onrender.com/api/waifu?q=${encodeURIComponent(type)}`);
-      await Matrix.sendMessage(m.from, { image: { url: res.data.image }, caption: `✨ *Random ${type} Waifu!*` }, { quoted: m });
+      await Matrix.sendMessage(m.from, {
+        image: { url: res.data.image },
+        caption: `🎀 *Waifu Generator Result*\n━━━━━━━━━━━━━━━━━━━━━\n🖼️ *Image URL:* ${res.data.image}\n🏷️ *Tags:* ${res.data.tags.join(', ')}\n📏 *Height:* ${res.data.height}\n━━━━━━━━━━━━━━━━━━━━━`
+      }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('send cat')) {
+    // Send Cat
+    else if (lowerQuery.startsWith('send cat')) {
       const res = await axios.get(`https://api.thecatapi.com/v1/images/search`);
       await Matrix.sendMessage(m.from, { image: { url: res.data[0].url }, caption: `🐱 *Random Cat!*` }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('send dog')) {
+    // Send Dog
+    else if (lowerQuery.startsWith('send dog')) {
       const res = await axios.get(`https://dog.ceo/api/breeds/image/random`);
       await Matrix.sendMessage(m.from, { image: { url: res.data.message }, caption: `🐶 *Random Dog!*` }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('send neko')) {
+    // Send Neko
+    else if (lowerQuery.startsWith('send neko')) {
       const res = await axios.get(`https://nekos.life/api/v2/img/neko`);
       await Matrix.sendMessage(m.from, { image: { url: res.data.url }, caption: `😸 *Random Neko!*` }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('send pexel')) {
-      const search = query.slice(11).trim();
+    // Send Pexel
+    else if (lowerQuery.startsWith('send pexel')) {
+      const search = query.replace(/send pexel/i, '').trim();
       if (!search) return Matrix.sendMessage(m.from, { text: "❌ Provide a keyword for Pexels." }, { quoted: m });
       const res = await axios.get(`https://pexel-api-ery7.onrender.com/api/pexels?q=${encodeURIComponent(search)}`);
-      const randomImage = res.data.urls[Math.floor(Math.random() * res.data.urls.length)];
+      const results = res.data?.results;
+      if (!results?.length) return Matrix.sendMessage(m.from, { text: `❌ No images found for *${search}*.` }, { quoted: m });
+      const randomImage = results[Math.floor(Math.random() * results.length)].url;
       await Matrix.sendMessage(m.from, { image: { url: randomImage }, caption: `✨ *Pexels Result for "${search}"*` }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('send song')) {
+    // Send Song
+    else if (lowerQuery.startsWith('send song')) {
       const songName = query.slice(10).trim();
-      if (!songName) return Matrix.sendMessage(m.from, { text: "❌ Provide a song name." }, { quoted: m });
-      const res = await axios.get(`https://music-movie-search-api.onrender.com/api/music?q=${encodeURIComponent(songName)}`);
+      if (!songName) return await Matrix.sendMessage(m.from, { text: "❌ *Provide a song name.*" }, { quoted: m });
+      const res = await axios.get(`https://apis.davidcyriltech.my.id/play?query=${encodeURIComponent(songName)}`);
+      const song = res.data.result;
       await Matrix.sendMessage(m.from, {
-        audio: { url: res.data.preview },
+        image: { url: song.thumbnail },
+        caption: `🎶 *Song Details*\n━━━━━━━━━━━━━━━━━━━━━\n📀 *Title:* ${song.title}\n⏳ *Duration:* ${song.duration}\n👁️ *Views:* ${song.views.toLocaleString()}\n📅 *Published:* ${song.published}\n🔗 *YouTube:* [Click Here](${song.video_url})\n━━━━━━━━━━━━━━━━━━━━━`
+      }, { quoted: m });
+      await Matrix.sendMessage(m.from, {
+        audio: { url: song.download_url },
         mimetype: 'audio/mpeg',
-        caption: `🎵 *${res.data.title} - ${res.data.artist}*\n🎼 *Album:* ${res.data.album}`
+        caption: `🎧 *Here's your downloaded song: ${song.title}*`
       }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('send movie')) {
-      const movieName = query.slice(11).trim();
-      if (!movieName) return Matrix.sendMessage(m.from, { text: "❌ Provide a movie title." }, { quoted: m });
-      const res = await axios.get(`https://music-movie-search-api.onrender.com/api/movie?q=${encodeURIComponent(movieName)}`);
-      await Matrix.sendMessage(m.from, {
-        image: { url: res.data.poster },
-        caption: `🎬 *${res.data.title}*\n📅 *Year:* ${res.data.year}\n⭐ *Rating:* ${res.data.rating}`
-      }, { quoted: m });
-
-    } else if (lowerQuery.startsWith('send lyrics')) {
+    // Send Lyrics
+    else if (lowerQuery.startsWith('send lyrics')) {
       const parts = query.slice(11).split("|");
       if (parts.length < 2) return Matrix.sendMessage(m.from, { text: "❌ Format: .p send lyrics Artist|Title" }, { quoted: m });
       const [artist, title] = parts.map(v => v.trim());
       const res = await axios.get(`https://ap-c4yl.onrender.com/api/lyrics?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
       await Matrix.sendMessage(m.from, { text: `🎤 *Lyrics for ${title} by ${artist}:*\n\n${res.data.lyrics}` }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('datetime')) {
+    // DateTime
+    else if (lowerQuery.startsWith('datetime')) {
       const now = new Date().toLocaleString("en-US", { timeZone: "UTC" });
       await Matrix.sendMessage(m.from, { text: `⏳ *Current Date & Time:* ${now}` }, { quoted: m });
+    }
 
-    } else if (lowerQuery.startsWith('translate')) {
+    // Translate
+    else if (lowerQuery.startsWith('translate')) {
       const parts = query.slice(9).split("|");
       if (parts.length < 3) return Matrix.sendMessage(m.from, { text: "❌ Format: .p translate text|from|to" }, { quoted: m });
       const [text, from, to] = parts.map(v => v.trim());
       const res = await axios.post("https://translator-api-bhew.onrender.com/api/translate", { text, sourceLang: from, targetLang: to });
       await Matrix.sendMessage(m.from, { text: `🌍 *Translation:* ${res.data.translatedText}` }, { quoted: m });
-
-    } else if (lowerQuery.startsWith('generate')) {
-      const parts = query.slice(8).split("|");
-      if (parts.length < 2) return Matrix.sendMessage(m.from, { text: "❌ Format: .p generate prompt|ratio" }, { quoted: m });
-      const [prompt, ratio] = parts.map(v => v.trim());
-      const res = await axios.get(`https://kaiz-apis.gleeze.com/api/fluxwebui?prompt=${encodeURIComponent(prompt)}&ratio=${encodeURIComponent(ratio)}`);
-      await Matrix.sendMessage(m.from, { image: { url: res.data.image }, caption: `🎨 *AI Artwork Generated!*\n\n🖌️ Prompt: ${prompt}\n📐 Ratio: ${ratio}` }, { quoted: m });
-
-    } else if (lowerQuery.startsWith('send rizz')) {
-      const res = await axios.get(`https://pinkupline-api.onrender.com/random`);
-      const pickupLine = res.data.line || res.data.pickupLine || "No pickup line found.";
-      await Matrix.sendMessage(m.from, {
-        text: `╭━━━〔 🎩 *𝗥𝗜𝗭𝗭 𝗠𝗔𝗦𝗧𝗘𝗥* 🎩 〕━━━⊰  
-┃ 💘✨ *Legendary Pickup Line:*  
-┃ “${pickupLine}”  
-┃  
-┃ 🔥 *Drop this and let the magic unfold!*  
-╰━━━━━━━━━━━━━━━━━━━━━━⊱`
-      }, { quoted: m });
-
-    } else if (lowerQuery.startsWith('dl ')) {
-      const url = query.slice(3).trim();
-      const res = await axios.get(`https://alldl-wnld.onrender.com/api/download?url=${encodeURIComponent(url)}`);
-      await Matrix.sendMessage(m.from, {
-        video: { url: res.data.video },
-        mimetype: 'video/mp4',
-        caption: `🎬 *Your downloaded video*`
-      }, { quoted: m });
-
-    } else {
-      await Matrix.sendMessage(m.from, { text: "❌ Unknown command. Type `.p` for available commands." }, { quoted: m });
     }
+// AI Image Generate
+else if (lowerQuery.startsWith('generate')) {
+  const promptText = query.slice(8).trim();
+  if (!promptText) return Matrix.sendMessage(m.from, { text: "❌ Provide a prompt to generate an image.\n\n*Example:* .p generate Cute anime girl" }, { quoted: m });
+
+  try {
+    const response = await axios.get(`https://kaiz-apis.gleeze.com/api/flux?prompt=${encodeURIComponent(promptText)}`, {
+      responseType: 'arraybuffer'
+    });
+
+    const imageBuffer = Buffer.from(response.data, 'binary');
+
+    await Matrix.sendMessage(m.from, {
+      image: imageBuffer,
+      caption: `🖼️ *Flux AI Generated Image*\n━━━━━━━━━━━━━━━━━━━━━\n🎨 *Prompt:* ${promptText}`
+    }, { quoted: m });
 
   } catch (err) {
-    console.error("Error:", err.response?.data || err.message);
-    await Matrix.sendMessage(m.from, { text: `❌ *Something went wrong:* ${err.message}` }, { quoted: m });
+    console.error(err);
+    await Matrix.sendMessage(m.from, { text: `❌ Error generating image: ${err.message}` }, { quoted: m });
   }
-};
+}
+
+    // Video Download
+    else if (lowerQuery.startsWith('dl')) {
+      const link = query.slice(2).trim();
+      if (!link) return Matrix.sendMessage(m.from, { text: "❌ Provide a video link." }, { quoted: m });
+      const res = await axios.get(`https://apis.davidcyriltech.my.id/ytmp4?url=${encodeURIComponent(link)}`);
+      await Matrix.sendMessage(m.from, {
+        video: { url: res.data.result.download_url },
+        caption: `🎥 *Downloaded Video:*\n📀 *Title:* ${res.data.result.title}`
+      }, { quoted: m });
+    }
+
+    // Fallback AI Response
+    else {
+      const aiRes = await axios.get(`https://kaiz-apis.gleeze.com/api/deepseek-v3?ask=${encodeURIComponent(query)}`);
+      await Matrix.sendMessage(m.from, {
+        text: `🎀 *DeepSeek AI Response*\n━━━━━━━━━━━━━━━━━━━━━\n🤖 ${aiRes.data.response}\n━━━━━━━━━━━━━━━━━━━━━`
+      }, { quoted: m });
+    }
+
+  } catch (e) {
+    console.error(e);
+    await Matrix.sendMessage(m.from, { text: `❌ Error: ${e.message}` }, { quoted: m });
+  }
+}; 
 
 export default p;
