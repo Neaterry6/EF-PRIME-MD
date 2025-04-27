@@ -1,26 +1,27 @@
 import acrcloud from 'acrcloud';
-import { Buffer } from 'buffer';
 
-const shazam = {
+const shazamCommand = {
   name: 'shazam',
-  description: 'Identify a song from an audio or video file',
+  description: 'Identify a song from an audio or video',
   category: 'Media',
-  async execute(m, sock, args) {
+
+  async execute(m, Matrix, args) {
     try {
       const p = m.quoted ? m.quoted : m;
       const mime = p.mimetype || '';
 
       if (!/audio|video/.test(mime)) {
-        await sock.sendMessage(m.from, { text: '🎧🎤 *Tag an audio or video file for analysis.*' }, { quoted: m });
+        await Matrix.sendMessage(m.from, { text: '🎧 Please reply to an audio or video file to identify.' }, { quoted: m });
         return;
       }
 
-      const awaitingMessage = await sock.sendMessage(m.from, { text: '🎶 *Listening and identifying your track...*' }, { quoted: m });
+      const waiting = await Matrix.sendMessage(m.from, { text: '🎶 *Listening to the track... please wait.*' }, { quoted: m });
 
-      const stream = await p.download();
-      const chunks = [];
-      for await (const chunk of stream) chunks.push(chunk);
-      const buffer = Buffer.concat(chunks);
+      const buffer = await p.download();
+      if (!buffer) {
+        await Matrix.sendMessage(m.from, { text: '❌ Failed to download the media file.' }, { quoted: m });
+        return;
+      }
 
       const acr = new acrcloud({
         host: 'identify-ap-southeast-1.acrcloud.com',
@@ -28,36 +29,37 @@ const shazam = {
         access_secret: 'iFbOFUI9rVrQPf7WN5BzcpPnQoCTPJ3JdMkAgrU8'
       });
 
-      const { status, metadata } = await acr.identify(buffer);
+      const result = await acr.identify(buffer);
 
-      if (status.code !== 0 || !metadata?.music?.length) {
-        await sock.sendMessage(m.from, { text: `❌ *Couldn’t recognize the track.*` }, { quoted: m });
-        await sock.sendMessage(m.from, { react: { text: '❌', key: awaitingMessage.key } });
+      if (result.status.code !== 0) {
+        await Matrix.sendMessage(m.from, { text: `❌ No match found: ${result.status.msg}` }, { quoted: m });
+        await Matrix.sendMessage(m.from, { react: { text: '❌', key: waiting.key } });
         return;
       }
 
-      const track = metadata.music[0];
+      const music = result.metadata.music[0];
+      const { title, artists, album, genres, release_date } = music;
 
-      const result = `
-╭━━━〔 🎶 *SONG IDENTIFIED* 🎶 〕━━━⊰
+      const response = `
+╭━━━〔 🎶 *TRACK IDENTIFIED* 🎶 〕━━━⊰
 ┃  
-┃ 🎵 *Title:* ${track.title}
-┃ 🎤 *Artist(s):* ${track.artists?.map(v => v.name).join(', ') || 'N/A'}
-${track.album ? `┃ 💿 *Album:* ${track.album.name}\n` : ''}${track.genres ? `┃ 🎶 *Genre:* ${track.genres.map(v => v.name).join(', ')}\n` : ''}
-┃ 🗓️ *Released:* ${track.release_date || 'Unknown'}
+┃ 🎵 *Title:* ${title}
+┃ 🎤 *Artist(s):* ${artists.map(a => a.name).join(', ')}
+${album ? `┃ 💿 *Album:* ${album.name}\n` : ''}${genres ? `┃ 🎶 *Genre:* ${genres.map(g => g.name).join(', ')}\n` : ''}
+┃ 🗓️ *Released:* ${release_date}
 ┃  
-┃ 🎧🎤 *Track successfully recognized!*  
+┃ 🎧 Track recognized successfully!
 ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⊱
       `;
 
-      await sock.sendMessage(m.from, { text: result.trim() }, { quoted: m });
-      await sock.sendMessage(m.from, { react: { text: '🎧🎤', key: awaitingMessage.key } });
+      await Matrix.sendMessage(m.from, { text: response.trim() }, { quoted: m });
+      await Matrix.sendMessage(m.from, { react: { text: '🎧', key: waiting.key } });
 
     } catch (err) {
       console.error('[SHAZAM ERROR]:', err);
-      await sock.sendMessage(m.from, { text: '❌🎧 *Couldn\'t recognize the track. Try again later.*' }, { quoted: m });
+      await Matrix.sendMessage(m.from, { text: '❌ An error occurred while identifying the track.' }, { quoted: m });
     }
   }
 };
 
-export default shazam;
+export default shazamCommand;
