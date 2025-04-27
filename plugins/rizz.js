@@ -8,10 +8,18 @@ const rizz = async (m, Matrix) => {
   try {
     const now = new Date().toLocaleString("en-US", { timeZone: "UTC" });
 
-    // First message
-    await Matrix.sendMessage(m.from, {
+    // Send preparing message
+    const prepMsg = await Matrix.sendMessage(m.from, {
       text: `🕰️ *Preparing your Rizz...*\n📅 *Date & Time (UTC):* ${now}`
     }, { quoted: m });
+
+    // Wait 2 seconds
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Delete the preparing message
+    await Matrix.sendMessage(m.from, {
+      delete: prepMsg.key
+    });
 
     // Fetch Rizz line
     const res = await axios.get('https://pinkupline-api.onrender.com/random');
