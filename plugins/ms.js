@@ -7,9 +7,16 @@ const searchCommand = async (m, Matrix) => {
 
   const [cmd, ...args] = body.slice(prefix.length).split(' ');
   const query = args.join(' ');
-  if (!query) return;
 
-  if (cmd === 'ms') {
+  // Only proceed for 'music' and 'movie' commands
+  if (cmd !== 'music' && cmd !== 'movie') return;
+
+  if (!query) {
+    await Matrix.sendMessage(m.from, { text: `❌ *Usage:* ${prefix}${cmd} <search query>` }, { quoted: m });
+    return;
+  }
+
+  if (cmd === 'mus') {
     try {
       const res = await axios.get(`https://music-movie-search-api.onrender.com/api/music?q=${encodeURIComponent(query)}`);
       const result = res.data.result;
@@ -25,7 +32,7 @@ const searchCommand = async (m, Matrix) => {
     }
   }
 
-  if (cmd === 'm') {
+  if (cmd === 'mv') {
     try {
       const res = await axios.get(`https://music-movie-search-api.onrender.com/api/movie?q=${encodeURIComponent(query)}`);
       const result = res.data.result;
