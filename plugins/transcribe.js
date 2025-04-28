@@ -43,7 +43,7 @@ const scribe = async (m, Matrix) => {
     const statusMessage = `╭──「 🎤 *Transcription Result* 」─╮
 │  
 │ 📝 *Text:* ${transcription}
-│ 🚀 *Processed via AssemblyAI API*
+│ 🚀 *Processed via Ayanfe API*
 │ ⏱️ *Speed: Fast & Accurate*
 │  
 ╰────────────╯`;
