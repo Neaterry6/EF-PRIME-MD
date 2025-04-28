@@ -9,19 +9,26 @@ const scribe = async (m, Matrix) => {
 
   if (cmd !== 'scribe') return;
   
-  if (!m.hasMedia) {
+  // 🔹 Check if the user **replied to a voice note**
+  const quotedMessage = m.quoted ? m.quoted : null;
+  const isVoiceNote = quotedMessage && quotedMessage.type === 'audio';
+
+  // 🔹 Check if the message **contains a new voice note**
+  const hasNewMedia = m.hasMedia && m.type === 'audio';
+
+  if (!hasNewMedia && !isVoiceNote) {
     return await Matrix.sendMessage(m.from, {
-      text: "⚠️ *Please send an audio file to transcribe!* 🎙️",
+      text: "⚠️ *Please send or reply to a voice note to transcribe!* 🎙️",
       contextInfo: { mentionedJid: [m.sender] }
     }, { quoted: m });
   }
 
-  // Download the audio file
-  const media = await Matrix.downloadMediaMessage(m);
+  // 🔹 Download the correct voice note
+  const media = hasNewMedia ? await Matrix.downloadMediaMessage(m) : await Matrix.downloadMediaMessage(quotedMessage);
   const filePath = `uploads/temp_audio.mp3`;
   fs.writeFileSync(filePath, media);
 
-  // Prepare the request to your API (No API key needed)
+  // 🔹 Send the audio file to your transcription API
   const formData = new FormData();
   formData.append('audio', fs.createReadStream(filePath));
 
@@ -32,7 +39,7 @@ const scribe = async (m, Matrix) => {
 
     const transcription = response.data.transcription || "⚠️ Transcription failed.";
     
-    // Beautified response 🎀✨
+    // 🎀 Beautified response 🎀
     const statusMessage = `╭──「 🎤 *Transcription Result* 」─╮
 │  
 │ 📝 *Text:* ${transcription}
