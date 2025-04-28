@@ -8,15 +8,15 @@ const scribe = async (m, Matrix) => {
   const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
 
   if (cmd !== 'scribe') return;
-  
-  // 🔹 Check if the user **replied to a voice note**
+
+  // 🔹 Check if the message contains an audio file
+  const hasNewMedia = m.hasMedia && (m.type === 'audio' || m.type === 'voice');
+
+  // 🔹 Check if the user replied to an audio/voice message
   const quotedMessage = m.quoted ? m.quoted : null;
-  const isVoiceNote = quotedMessage && quotedMessage.type === 'audio';
+  const isVoiceReply = quotedMessage && (quotedMessage.type === 'audio' || quotedMessage.type === 'voice');
 
-  // 🔹 Check if the message **contains a new voice note**
-  const hasNewMedia = m.hasMedia && m.type === 'audio';
-
-  if (!hasNewMedia && !isVoiceNote) {
+  if (!hasNewMedia && !isVoiceReply) {
     return await Matrix.sendMessage(m.from, {
       text: "⚠️ *Please send or reply to a voice note to transcribe!* 🎙️",
       contextInfo: { mentionedJid: [m.sender] }
@@ -38,7 +38,7 @@ const scribe = async (m, Matrix) => {
     });
 
     const transcription = response.data.transcription || "⚠️ Transcription failed.";
-    
+
     // 🎀 Beautified response 🎀
     const statusMessage = `╭──「 🎤 *Transcription Result* 」─╮
 │  
@@ -57,7 +57,7 @@ const scribe = async (m, Matrix) => {
     fs.unlinkSync(filePath);
   } catch (error) {
     console.error("Error transcribing audio:", error);
-    
+
     await Matrix.sendMessage(m.from, {
       text: "⚠️ *Something went wrong while transcribing. Please try again later!* ❌",
       contextInfo: { mentionedJid: [m.sender] }
