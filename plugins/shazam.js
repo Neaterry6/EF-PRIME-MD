@@ -1,66 +1,83 @@
-import acrcloud from 'acrcloud';
+import acrcloud from "acrcloud";
+import { downloadMediaMessage } from "@whiskeysockets/baileys";
+import fs from "fs";
 
-const shazamCommand = {
-  name: 'shazam',
-  description: 'Identify a song from an audio or video message',
-  category: 'Media',
+const acr = new acrcloud({
+  host: "identify-eu-west-1.acrcloud.com",
+  access_key: "6ab51323d0971429efbc32743c3b6e01",
+  access_secret: "iFbOFUI9rVrQPf7WN5BzcpPnQoCTPJ3JdMkAgrU8",
+});
 
-  async execute(m, Matrix, args) {
-    try {
-      const quoted = m.quoted ? m.quoted : m;
-      const mime = (quoted.mimetype || '');
+const shazamCommand = async (m, Matrix) => {
+  const body =
+    m.message?.extendedTextMessage?.text ||
+    m.message?.conversation ||
+    m.message?.imageMessage?.caption ||
+    m.message?.videoMessage?.caption ||
+    "";
 
-      if (!/audio|video/.test(mime)) {
-        await Matrix.sendMessage(m.from, { text: '🎧 *Tag an audio or video message to recognize.*' }, { quoted: m });
-        return;
-      }
+  const prefix = ".";
+  const cmd = body.startsWith(prefix)
+    ? body.slice(prefix.length).split(" ")[0].toLowerCase()
+    : "";
 
-      const processingMsg = await Matrix.sendMessage(m.from, { text: '🎶 *Listening and identifying your track...*' }, { quoted: m });
+  if (cmd !== "shazam") return;
 
-      const buffer = await quoted.download();
+  // React emoji when command is called
+  await Matrix.sendMessage(m.from, { react: { text: "🎶", key: m.key } });
 
-      const acr = new acrcloud({
-        host: 'identify-ap-southeast-1.acrcloud.com',
-        access_key: '6ab51323d0971429efbc32743c3b6e01',
-        access_secret: 'iFbOFUI9rVrQPf7WN5BzcpPnQoCTPJ3JdMkAgrU8'
-      });
+  const isMedia = m.message.audioMessage || m.message.videoMessage;
 
-      const result = await acr.identify(buffer);
-
-      if (result.status.code !== 0) {
-        await Matrix.sendMessage(m.from, { text: `❌ *Failed:* ${result.status.msg}` }, { quoted: m });
-        await Matrix.sendMessage(m.from, { react: { text: '❌', key: processingMsg.key } });
-        return;
-      }
-
-      const music = result.metadata.music[0];
-      const title = music.title || 'Unknown';
-      const artists = music.artists.map(a => a.name).join(', ') || 'Unknown';
-      const album = music.album ? music.album.name : 'Unknown';
-      const releaseDate = music.release_date || 'Unknown';
-      const genre = music.genres ? music.genres.map(g => g.name).join(', ') : 'Unknown';
-
-      const finalResult = `
-╭━━━〔 🎶 *TRACK IDENTIFIED* 🎶 〕━━━⊰
-┃  
-┃ 🎵 *Title:* ${title}
-┃ 🎤 *Artist(s):* ${artists}
-┃ 💿 *Album:* ${album}
-┃ 🎶 *Genre:* ${genre}
-┃ 🗓️ *Released:* ${releaseDate}
-┃  
-┃ 🎧 *Recognized successfully!*  
-╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⊱
-      `.trim();
-
-      await Matrix.sendMessage(m.from, { text: finalResult }, { quoted: m });
-      await Matrix.sendMessage(m.from, { react: { text: '🎧', key: processingMsg.key } });
-
-    } catch (error) {
-      console.error('[SHAZAM CMD ERROR]:', error);
-      await Matrix.sendMessage(m.from, { text: '❌ *Couldn\'t recognize the track. Try again later.*' }, { quoted: m });
-    }
+  if (!isMedia) {
+    return await Matrix.sendMessage(
+      m.from,
+      { text: "❌ *Please reply to an audio or video message to identify it!*" },
+      { quoted: m }
+    );
   }
+
+  const mediaBuffer = await downloadMediaMessage(m, "buffer");
+
+  fs.writeFileSync("./temp_audio.mp3", mediaBuffer);
+
+  acr
+    .identify(fs.readFileSync("./temp_audio.mp3"))
+    .then(async (result) => {
+      fs.unlinkSync("./temp_audio.mp3");
+
+      if (result.status.code === 0) {
+        const metadata = result.metadata.music[0];
+        const title = metadata.title;
+        const artist = metadata.artists[0].name;
+        const album = metadata.album ? metadata.album.name : "Unknown";
+        const releaseDate = metadata.release_date || "Unknown";
+        const genres = metadata.genres
+          ? metadata.genres.map((g) => g.name).join(", ")
+          : "N/A";
+
+        await Matrix.sendMessage(
+          m.from,
+          {
+            text: `🎵 *Track Identified!*\n━━━━━━━━━━━━━━━━━━━━━\n✨ *Title:* ${title}\n🎤 *Artist:* ${artist}\n💿 *Album:* ${album}\n📅 *Released:* ${releaseDate}\n🎧 *Genres:* ${genres}\n━━━━━━━━━━━━━━━━━━━━━`,
+          },
+          { quoted: m }
+        );
+      } else {
+        await Matrix.sendMessage(
+          m.from,
+          { text: "❌ *Sorry, couldn't identify this track.*" },
+          { quoted: m }
+        );
+      }
+    })
+    .catch(async (err) => {
+      console.error("ACRCloud Error:", err);
+      await Matrix.sendMessage(
+        m.from,
+        { text: "❌ *An error occurred while identifying the track.*" },
+        { quoted: m }
+      );
+    });
 };
 
 export default shazamCommand;
