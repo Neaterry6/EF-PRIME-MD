@@ -1,39 +1,56 @@
-import fs from 'fs';
-import axios from 'axios';
-import FormData from 'form-data';
-import config from '../config.cjs';
+import fs from "fs";
+import axios from "axios";
+import FormData from "form-data";
+import { downloadMediaMessage } from "@whiskeysockets/baileys";
+import config from "../config.cjs";
 
 const scribe = async (m, Matrix) => {
   try {
     const prefix = config.PREFIX;
-    const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
+    const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(" ")[0].toLowerCase() : "";
 
-    const validCommands = ['scribe', 'transcribe', 'speech-to-text'];
+    const validCommands = ["scribe", "transcribe", "speech-to-text"];
     if (!validCommands.includes(cmd)) return;
 
     const quoted = m.quoted || {}; 
+    const isQuotedAudio = quoted && (quoted.mtype === "audioMessage" || quoted.mtype === "videoMessage");
+    const isDirectAudio = m.message?.audioMessage || m.message?.videoMessage;
 
     // 🔹 Ensure user sent **or replied to** a voice note
-    if (!quoted || (quoted.mtype !== 'audioMessage' && quoted.mtype !== 'videoMessage')) {
-      return m.reply('⚠️ *Please send or reply to a voice note to transcribe!* 🎙️');
+    if (!isDirectAudio && !isQuotedAudio) {
+      return await Matrix.sendMessage(
+        m.from,
+        { text: "⚠️ *Please send or reply to a voice note to transcribe!* 🎙️" },
+        { quoted: m }
+      );
     }
 
+    // 🔹 Download the correct voice note
+    const mediaBuffer = isDirectAudio ? await downloadMediaMessage(m, "buffer") : await downloadMediaMessage(quoted, "buffer");
+    const filePath = `uploads/temp_audio.mp3`;
+    fs.writeFileSync(filePath, mediaBuffer);
+
+    // 🔹 Verify the audio file exists before sending
+    if (!fs.existsSync(filePath)) {
+      return m.reply("⚠️ *Error: Audio file wasn't saved correctly!* ❌");
+    }
+
+    // 🔹 Send the audio file to your transcription API
+    const formData = new FormData();
+    formData.append("audio", fs.createReadStream(filePath));
+
+    m.reply("📝 *Transcribing... Please wait!*");
+
     try {
-      const media = await m.quoted.download();
-      const filePath = `uploads/${Date.now()}.mp3`;
-      fs.writeFileSync(filePath, media);
-
-      m.reply('📝 *Transcribing... Please wait!*');
-
-      // 🔹 Send the audio file to your transcription API
-      const formData = new FormData();
-      formData.append('audio', fs.createReadStream(filePath));
-
       const response = await axios.post("https://transcribe-c7cd.onrender.com/transcribe", formData, {
-        headers: { ...formData.getHeaders() }
+        headers: { ...formData.getHeaders() },
       });
 
-      const transcription = response.data.transcription || "⚠️ Transcription failed.";
+      if (!response.data || !response.data.transcription) {
+        throw new Error("Invalid response from API");
+      }
+
+      const transcription = response.data.transcription;
 
       // 🎀 Beautified response 🎀
       const txt = `╭──「 🎤 *Transcription Result* 」─╮
@@ -46,13 +63,13 @@ const scribe = async (m, Matrix) => {
 
       fs.unlinkSync(filePath);
       m.reply(txt);
-    } catch (error) {
-      console.error(error);
-      m.reply('⚠️ *An error occurred during transcription. Please try again!* ❌');
+    } catch (apiError) {
+      console.error("Transcription API Error:", apiError);
+      m.reply("❌ *Transcription failed due to an API issue. Please try again later!*");
     }
   } catch (error) {
-    console.error('Error:', error);
-    m.reply('❌ *An Error Occurred While Processing The Command.*');
+    console.error("Error:", error);
+    m.reply("❌ *An error occurred while processing the command.*");
   }
 };
 
