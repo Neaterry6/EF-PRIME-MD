@@ -1,47 +1,61 @@
-import axios from "axios";
-import config from "../config.cjs";
+import config from '../config.cjs';
+import axios from 'axios';
+import FormData from 'form-data';
+import fs from 'fs';
 
-const transcribe = async (m, Matrix) => {
+const scribe = async (m, Matrix) => {
   const prefix = config.PREFIX;
-  const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(" ")[0].toLowerCase() : "";
+  const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
 
-  if (cmd === "transcribe") {
-    try {
-      const start = new Date().getTime();
+  if (cmd !== 'scribe') return;
+  
+  if (!m.hasMedia) {
+    return await Matrix.sendMessage(m.from, {
+      text: "⚠️ *Please send an audio file to transcribe!* 🎙️",
+      contextInfo: { mentionedJid: [m.sender] }
+    }, { quoted: m });
+  }
 
-      if (!m.audioMessage) {
-        await Matrix.sendMessage(m.from, { text: "⚠️ Please send a voice note to transcribe!" }, { quoted: m });
-        return;
-      }
+  // Download the audio file
+  const media = await Matrix.downloadMediaMessage(m);
+  const filePath = `uploads/temp_audio.mp3`;
+  fs.writeFileSync(filePath, media);
 
-      // Download the voice note
-      const voiceNoteUrl = await Matrix.downloadMediaMessage(m);
-      
-      // Send the voice note to the Transcribe API
-      const formData = new FormData();
-      formData.append("audio", voiceNoteUrl);
+  // Prepare the request to your API (No API key needed)
+  const formData = new FormData();
+  formData.append('audio', fs.createReadStream(filePath));
 
-      const response = await axios.post("https://transcribe-fwsw.onrender.com/transcribe", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+  try {
+    const response = await axios.post("https://transcribe-c7cd.onrender.com/transcribe", formData, {
+      headers: { ...formData.getHeaders() }
+    });
 
-      const transcription = response.data.transcription;
+    const transcription = response.data.transcription || "⚠️ Transcription failed.";
+    
+    // Beautified response 🎀✨
+    const statusMessage = `╭──「 🎤 *Transcription Result* 」─╮
+│  
+│ 📝 *Text:* ${transcription}
+│ 🚀 *Processed via AssemblyAI API*
+│ ⏱️ *Speed: Fast & Accurate*
+│  
+╰────────────╯`;
 
-      const reactionEmojis = ["📝", "🎤", "🗣️", "🔊", "📜", "🎀"];
-      const reactionEmoji = reactionEmojis[Math.floor(Math.random() * reactionEmojis.length)];
+    await Matrix.sendMessage(m.from, {
+      text: statusMessage,
+      contextInfo: { mentionedJid: [m.sender] }
+    }, { quoted: m });
 
-      const end = new Date().getTime();
-      const responseTime = (end - start) / 1000;
-      
-      const text = `📦 *Voice Note Transcription* 📦\n━━━━━━━━━━━━━━━━━\n🎀 *Processing Time:* ${responseTime.toFixed(2)}s ${reactionEmoji}\n📝 *Transcription:* ${transcription}\n━━━━━━━━━━━━━━━━━`;
-
-      await Matrix.sendMessage(m.from, { text }, { quoted: m });
-
-    } catch (error) {
-      console.error("Transcription failed:", error);
-      await Matrix.sendMessage(m.from, { text: "⚠️ Failed to transcribe voice note, try again later!" }, { quoted: m });
-    }
+    // Cleanup temporary file
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    console.error("Error transcribing audio:", error);
+    
+    await Matrix.sendMessage(m.from, {
+      text: "⚠️ *Something went wrong while transcribing. Please try again later!* ❌",
+      contextInfo: { mentionedJid: [m.sender] }
+    }, { quoted: m });
   }
 };
 
-export default transcribe
+export default scribe;
