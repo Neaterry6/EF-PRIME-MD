@@ -1,46 +1,33 @@
-import axios from 'axios';
+import axios from "axios";
 
-const rizzCommand = {
-  name: 'rizz',
-  description: 'Get a random Rizz pick-up line',
-  category: 'Fun',
+const rizzCommand = async (m, Matrix) => {
+  const body = m.body.toLowerCase();
+  if (!body.startsWith(".rizz")) return;
 
-  async execute(m, Matrix, args) {
-    try {
-      // Fetch from API
-      const response = await axios.get('https://pinkupline-api.onrender.com/random');
+  try {
+    await Matrix.sendMessage(m.from, { react: { text: "🎀", key: m.key } });
 
-      // Check if line exists
-      if (!response.data || !response.data.line) {
-        await Matrix.sendMessage(m.from, {
-          text: '❌ Could not fetch a pick-up line right now.'
-        }, { quoted: m });
-        return;
-      }
+    const res = await axios.get("https://pinkupline-api.onrender.com/random");
 
-      const rizzLine = response.data.line;
-
-      // Styled response message
-      const result = `
-╭━━━〔 ✨ *RIZZ PICK-UP LINE* ✨ 〕━━━⊰
-┃  
-┃ 💖 ${rizzLine}
-┃  
-┃ 🎀 _Drop this on someone special!_
-╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⊱
-      `.trim();
-
-      // Send message
-      await Matrix.sendMessage(m.from, {
-        text: result
-      }, { quoted: m });
-
-    } catch (error) {
-      console.error('[RIZZ CMD ERROR]:', error);
-      await Matrix.sendMessage(m.from, {
-        text: '❌ An error occurred while fetching a pick-up line.'
+    if (res.status !== 200 || !res.data.line) {
+      return await Matrix.sendMessage(m.from, {
+        text: "❌ Couldn’t fetch a rizz line. Try again later.",
       }, { quoted: m });
     }
+
+    const line = res.data.line;
+
+    await Matrix.sendMessage(m.from, {
+      text: `🎀 *Random Rizz Pick-Up Line* 🎀\n━━━━━━━━━━━━━━━━━━━━━\n✨ ${line}\n━━━━━━━━━━━━━━━━━━━━━\n🖤 *Powered by EF-PRIME*`,
+    }, { quoted: m });
+
+    await Matrix.sendMessage(m.from, { react: { text: "✅", key: m.key } });
+
+  } catch (err) {
+    console.error("Rizz Command Error:", err);
+    await Matrix.sendMessage(m.from, {
+      text: "❌ Error fetching pick-up line.",
+    }, { quoted: m });
   }
 };
 
